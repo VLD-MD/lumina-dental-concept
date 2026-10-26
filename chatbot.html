@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bloom &amp; Co. Support Chatbot (Concept Demo)</title>
+<meta name="description" content="Concept demo of a customer support chatbot for a fictional flower shop: FAQ answers, order tracking and lead capture.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fff6f3; --ink:#2b1d20; --muted:#7a6469; --brand:#d6456b; --brand-dark:#b3314f;
+    --leaf:#3d8b5f; --card:#ffffff; --line:#f1dcd8; --bot:#fff0ec; --radius:20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 14px}
+  h1,h2{font-family:'Fraunces',Georgia,serif}
+  .intro{text-align:center;max-width:620px;margin-bottom:22px}
+  .intro .tag{display:inline-block;background:#fde2e8;color:var(--brand-dark);padding:5px 14px;border-radius:999px;font-size:.8rem;font-weight:700;margin-bottom:12px}
+  .intro h1{font-size:clamp(1.7rem,4vw,2.4rem);line-height:1.15;margin-bottom:8px}
+  .intro p{color:var(--muted)}
+
+  .chat{width:min(440px,100%);height:min(640px,calc(100vh - 220px));min-height:480px;background:var(--card);border-radius:26px;box-shadow:0 30px 60px -28px rgba(214,69,107,.45);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line)}
+  .top{display:flex;align-items:center;gap:12px;padding:16px 18px;background:linear-gradient(135deg,var(--brand),#ee7a96);color:#fff}
+  .avatar{width:42px;height:42px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:1.4rem}
+  .top b{display:block;font-family:'Fraunces',serif;font-size:1.1rem;line-height:1.1}
+  .top small{opacity:.92;font-size:.8rem}
+  .top small::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:#9bf0b7;margin-right:6px}
+
+  .msgs{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px;background:#fffdfc}
+  .m{max-width:82%;padding:11px 15px;border-radius:18px;font-size:.96rem;line-height:1.45;white-space:pre-wrap;word-wrap:break-word;animation:pop .25s ease}
+  .m.bot{background:var(--bot);border-bottom-left-radius:6px;align-self:flex-start}
+  .m.user{background:var(--brand);color:#fff;border-bottom-right-radius:6px;align-self:flex-end}
+  .t{font-size:.7rem;color:var(--muted);margin-top:4px}
+  .m.user .t{color:#ffd9e2}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .typing{display:none;align-self:flex-start;background:var(--bot);padding:12px 16px;border-radius:18px;border-bottom-left-radius:6px}
+  .typing span{display:inline-block;width:7px;height:7px;margin:0 2px;background:var(--brand);border-radius:50%;opacity:.4;animation:b 1s infinite}
+  .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+  @keyframes b{0%,60%,100%{transform:none;opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+
+  .quick{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px 4px;background:#fffdfc}
+  .quick button{border:1.5px solid var(--brand);background:#fff;color:var(--brand-dark);padding:7px 13px;border-radius:999px;font:inherit;font-size:.85rem;font-weight:500;cursor:pointer;transition:.15s}
+  .quick button:hover{background:var(--brand);color:#fff}
+
+  .bar{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--line);background:#fff}
+  .bar input{flex:1;border:1.5px solid var(--line);border-radius:999px;padding:12px 16px;font:inherit;font-size:.95rem;background:#fffaf9}
+  .bar input:focus{outline:2px solid var(--brand);border-color:transparent}
+  .bar button{width:46px;height:46px;border:0;border-radius:50%;background:var(--brand);color:#fff;font-size:1.2rem;cursor:pointer;transition:.15s}
+  .bar button:hover{background:var(--brand-dark)}
+
+  .note{max-width:620px;text-align:center;color:var(--muted);font-size:.85rem;margin-top:18px}
+  .note b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <span class="tag">Concept demo</span>
+  <h1>Customer support chatbot for a flower shop</h1>
+  <p>Try it: ask about delivery, prices or opening hours, track an order, or leave a request for a custom bouquet.</p>
+</div>
+
+<div class="chat" role="region" aria-label="Chatbot demo">
+  <div class="top">
+    <div class="avatar">🌸</div>
+    <div><b>Bloom &amp; Co.</b><small>Assistant is online</small></div>
+  </div>
+  <div class="msgs" id="msgs" aria-live="polite">
+    <div class="typing" id="typing"><span></span><span></span><span></span></div>
+  </div>
+  <div class="quick" id="quick"></div>
+  <form class="bar" id="form" autocomplete="off">
+    <input id="input" type="text" placeholder="Type your message..." aria-label="Message">
+    <button type="submit" aria-label="Send">➤</button>
+  </form>
+</div>
+
+<p class="note"><b>About this demo:</b> fictional shop, personal portfolio project. The bot runs on predefined rules (intents, order lookup, lead capture flow) so it works without a server. In a real project the same interface connects to an AI model (for example the OpenAI API) and to your store or CRM.</p>
+
+<script>
+  const msgs = document.getElementById('msgs');
+  const typing = document.getElementById('typing');
+  const quick = document.getElementById('quick');
+  const form = document.getElementById('form');
+  const input = document.getElementById('input');
+
+  // conversation state for multi-step flows
+  let state = { flow: null, name: '' };
+
+  const QUICK_MAIN = ['Delivery', 'Prices', 'Opening hours', 'Track my order', 'Custom bouquet'];
+
+  // intents: keywords -> answer
+  const intents = [
+    { k: ['deliver','shipping','ship','courier'],
+      a: 'We deliver across the city every day from 9:00 to 21:00.\n• Standard (within 3 hours): $5\n• Express (within 90 minutes): $9\n• Free delivery on orders over $60.' },
+    { k: ['price','cost','how much','cheap','bouquet price'],
+      a: 'Our bouquets start at $25:\n• Small (7 stems): from $25\n• Classic (15 stems): from $45\n• Premium (25+ stems): from $80\nAsk for a custom bouquet and I will pass your wishes to a florist.' },
+    { k: ['hour','open','close','working','time'],
+      a: 'We are open every day from 8:00 to 21:00, including weekends and public holidays. Online orders are accepted 24/7.' },
+    { k: ['return','refund','wilt','fresh','damaged'],
+      a: 'Freshness guarantee: if flowers wilt within 3 days, send us a photo and we will replace the bouquet or refund you, no questions asked.' },
+    { k: ['pay','card','cash','payment'],
+      a: 'You can pay by card online, by card or cash to the courier, or by bank transfer for company orders.' },
+    { k: ['wedding','event','corporate','subscription'],
+      a: 'We do wedding and event floristry as well as weekly flower subscriptions for offices and restaurants. Want a florist to contact you? Tap "Custom bouquet" and leave your details.' },
+    { k: ['hello','hi','hey','good morning','good evening'],
+      a: 'Hello! 🌷 I can help with delivery, prices, opening hours, order tracking and custom bouquets. What do you need?' },
+    { k: ['thanks','thank you','thx'],
+      a: 'You are welcome! Anything else I can help with?' },
+    { k: ['human','operator','manager','person','agent'],
+      a: 'No problem, I will pass this to a human colleague. You can also call us at +1 555 010 0199 (demo number) during opening hours.' }
+  ];
+
+  function now(){ return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+
+  function addMsg(text, who){
+    const el = document.createElement('div');
+    el.className = 'm ' + who;
+    const body = document.createElement('div');
+    body.textContent = text;          // textContent: user text is never executed as HTML
+    const t = document.createElement('div');
+    t.className = 't';
+    t.textContent = now();
+    el.append(body, t);
+    msgs.insertBefore(el, typing);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function botSay(text, then){
+    typing.style.display = 'block';
+    msgs.scrollTop = msgs.scrollHeight;
+    const delay = Math.min(1200, 450 + text.length * 8);
+    setTimeout(() => {
+      typing.style.display = 'none';
+      addMsg(text, 'bot');
+      if (then) then();
+    }, delay);
+  }
+
+  function setQuick(list){
+    quick.innerHTML = '';
+    list.forEach(label => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.addEventListener('click', () => handle(label));
+      quick.appendChild(b);
+    });
+  }
+
+  // demo order database
+  const orders = {
+    'BC-1001': 'Order BC-1001: your bouquet is being prepared by our florist. Estimated delivery today, 14:00-15:00.',
+    'BC-1002': 'Order BC-1002: the courier is on the way. Estimated arrival in about 25 minutes.',
+    'BC-1003': 'Order BC-1003: delivered yesterday at 17:42. We hope you enjoyed the flowers!'
+  };
+
+  function handle(raw){
+    const text = raw.trim();
+    if (!text) return;
+    addMsg(text, 'user');
+    setQuick([]);
+    const low = text.toLowerCase();
+
+    // ---- multi-step flows first ----
+    if (state.flow === 'order'){
+      const m = text.toUpperCase().match(/BC-?\s?(\d{4})/);
+      if (m){
+        state.flow = null;
+        const id = 'BC-' + m[1];
+        const found = orders[id];
+        botSay(found || ('I could not find ' + id + '. Please check the number or leave your phone and we will check manually.'), () => setQuick(QUICK_MAIN));
+      } else {
+        botSay('Please send the order number in this format: BC-1001 (demo numbers: BC-1001, BC-1002, BC-1003).');
+      }
+      return;
+    }
+
+    if (state.flow === 'lead_name'){
+      if (text.length < 2){ botSay('Please tell me your name.'); return; }
+      state.name = text;
+      state.flow = 'lead_phone';
+      botSay('Nice to meet you, ' + text + '! What phone number can our florist call you on?');
+      return;
+    }
+
+    if (state.flow === 'lead_phone'){
+      if (text.replace(/\D/g,'').length < 7){ botSay('That does not look like a phone number. Please try again, for example +1 555 123 4567.'); return; }
+      const name = state.name;
+      state = { flow: null, name: '' };
+      botSay('Thank you, ' + name + '! 🌸 Your request is saved and a florist will call you within 30 minutes during opening hours. (Demo: nothing is actually sent.)', () => setQuick(QUICK_MAIN));
+      return;
+    }
+
+    // ---- start flows ----
+    if (low.includes('track') || low.includes('where is my order') || low.includes('order status') || /\bbc-?\d{4}\b/.test(low)){
+      const m = text.toUpperCase().match(/BC-?\s?(\d{4})/);
+      if (m){
+        const id = 'BC-' + m[1];
+        botSay(orders[id] || ('I could not find ' + id + '. Please check the number.'), () => setQuick(QUICK_MAIN));
+      } else {
+        state.flow = 'order';
+        botSay('Sure! Please send your order number (format BC-1001).');
+      }
+      return;
+    }
+
+    if (low.includes('custom') || low.includes('florist') || low.includes('leave') || low.includes('contact me') || low.includes('call me')){
+      state.flow = 'lead_name';
+      botSay('I will gladly pass your wishes to our florist. First, what is your name?');
+      return;
+    }
+
+    // ---- simple intents (best match by number of keyword hits) ----
+    let best = null, bestScore = 0;
+    intents.forEach(it => {
+      // short keywords (hi, hey, pay...) must match as whole words, so "which" does not trigger "hi"
+      const score = it.k.filter(w => w.length <= 3 ? new RegExp('\\b' + w + '\\b').test(low) : low.includes(w)).length;
+      if (score > bestScore){ best = it; bestScore = score; }
+    });
+
+    if (best){
+      botSay(best.a, () => setQuick(QUICK_MAIN));
+    } else {
+      botSay('I am not sure I understood. I can help with delivery, prices, opening hours, order tracking or a custom bouquet. Choose an option below or ask for a human colleague.', () => setQuick(QUICK_MAIN.concat(['Talk to a human'])));
+    }
+  }
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const v = input.value;
+    input.value = '';
+    handle(v);
+  });
+
+  // welcome message
+  botSay('Hi! I am the Bloom & Co. assistant 🌷 How can I help you today?', () => setQuick(QUICK_MAIN));
+</script>
+</body>
+</html>
